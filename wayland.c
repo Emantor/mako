@@ -75,7 +75,25 @@ static void create_output(struct mako_state *state,
 	}
 }
 
+static void recreate_surfaces(struct mako_state *state) {
+	struct mako_surface *surface, *tmp;
+	wl_list_for_each_safe(surface, tmp, &state->surfaces, link) {
+		destroy_surface(surface);
+	}
+
+	struct mako_notification *notif;
+	wl_list_for_each(notif, &state->notifications, link) {
+		/* Also reset the notif->surface so it gets reasigned to default
+		 * if appropriate */
+		apply_each_criteria(&state->config.criteria, notif);
+	}
+
+	wl_list_for_each(surface, &state->surfaces, link) {
+		set_dirty(surface);
+	}
+}
 static void destroy_output(struct mako_output *output) {
+	struct mako_state *state = output->state;
 	struct mako_surface *surface;
 	wl_list_for_each(surface, &output->state->surfaces, link) {
 		if (surface->surface_output == output) {
@@ -89,6 +107,8 @@ static void destroy_output(struct mako_output *output) {
 	wl_output_destroy(output->wl_output);
 	free(output->name);
 	free(output);
+
+	recreate_surfaces(state);
 }
 
 static struct mako_surface *get_surface(struct mako_state *state,
