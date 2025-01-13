@@ -56,6 +56,7 @@ static void create_output(struct mako_state *state,
 		fprintf(stderr, "allocation failed\n");
 		return;
 	}
+	fprintf(stderr, "Created output %p\n", output);
 	output->state = state;
 	output->global_name = global_name;
 	output->wl_output = wl_output;
@@ -92,15 +93,22 @@ static void recreate_surfaces(struct mako_state *state) {
 		set_dirty(surface);
 	}
 }
+
 static void destroy_output(struct mako_output *output) {
 	struct mako_state *state = output->state;
 	struct mako_surface *surface;
+	fprintf(stderr, "Destroying output %p\n", output);
 	wl_list_for_each(surface, &output->state->surfaces, link) {
+
 		if (surface->surface_output == output) {
 			surface->surface_output = NULL;
+		} else {
+			fprintf(stderr, "Found surface %p for %p\n", surface, surface->surface_output);
 		}
 		if (surface->layer_surface_output == output) {
 			surface->layer_surface_output = NULL;
+		} else {
+			fprintf(stderr, "Found layer surface %p on %p\n", surface, surface->layer_surface_output);
 		}
 	}
 	wl_list_remove(&output->link);
@@ -361,12 +369,14 @@ static void surface_handle_enter(void *data, struct wl_surface *surface,
 	// Don't bother keeping a list of outputs, a layer surface can only be on
 	// one output a a time
 	msurface->surface_output = wl_output_get_user_data(wl_output);
+	fprintf(stderr, "Got enter event for %p on %p\n", msurface, msurface->surface_output);
 	set_dirty(msurface);
 }
 
 static void surface_handle_leave(void *data, struct wl_surface *surface,
 		struct wl_output *wl_output) {
 	struct mako_surface *msurface = data;
+	fprintf(stderr, "Got leave event for %p on %p\n", msurface, msurface->surface_output);
 	msurface->surface_output = NULL;
 }
 
@@ -738,13 +748,17 @@ static void frame_handle_done(void *data, struct wl_callback *callback,
 	struct mako_surface *surface = data;
 
 	if (surface->frame_callback) {
+		fprintf(stderr, "Destroying callback\n");
 		wl_callback_destroy(surface->frame_callback);
 		surface->frame_callback = NULL;
 	}
 
 	// Only draw again if we need to
 	if (surface->dirty) {
+		fprintf(stderr, "Sending frame because surface was dirty\n");
 		send_frame(surface);
+	} else {
+		fprintf(stderr, "Not sending frame\n");
 	}
 }
 
@@ -754,13 +768,16 @@ static const struct wl_callback_listener frame_listener = {
 
 static void schedule_frame_and_commit(struct mako_surface *surface) {
 	if (surface->frame_callback) {
+		fprintf(stderr, "Surface has no callback\n");
 		return;
 	}
 	if (surface->surface == NULL) {
 		// We don't yet have a surface, create it immediately
+		fprintf(stderr, "Surface has no wl_surface\n");
 		send_frame(surface);
 		return;
 	}
+	fprintf(stderr, "Using existing wl_surface\n");
 	surface->frame_callback = wl_surface_frame(surface->surface);
 	wl_callback_add_listener(surface->frame_callback, &frame_listener, surface);
 	wl_surface_commit(surface->surface);

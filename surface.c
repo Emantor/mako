@@ -5,6 +5,7 @@
 #include "surface.h"
 
 void destroy_surface(struct mako_surface *surface) {
+	fprintf(stderr, "Destroying surface %p\n", surface);
 	if (surface->layer_surface != NULL) {
 		zwlr_layer_surface_v1_destroy(surface->layer_surface);
 	}
@@ -34,6 +35,7 @@ struct mako_surface *create_surface(struct mako_state *state, const char *output
 	surface->layer = layer;
 	surface->anchor = anchor;
 	surface->state = state;
+	fprintf(stderr, "Created surface %p on [%s]\n", surface, output);
 
 	wl_list_insert(&state->surfaces, &surface->link);
 	return surface;
