@@ -77,6 +77,7 @@ static void create_output(struct mako_state *state,
 }
 
 static void recreate_surfaces(struct mako_state *state) {
+	return;
 	struct mako_surface *surface, *tmp;
 	wl_list_for_each_safe(surface, tmp, &state->surfaces, link) {
 		destroy_surface(surface);
